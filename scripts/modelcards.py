@@ -22,18 +22,26 @@ class ModelCard:
     Variable Documentation:
 
         model       --> This is any model that has a .predict() method attached to it
+
         df          --> A data frame of data which will be used for the model and subsetting
+
         columns     --> The columns at which you want to subset your data to run tests. 
                            NOTE: These columns to not necessarily need to be model features, provided
                            data_col is specified.
+
         truth       --> a pandas series/numpy vector of the test set truth
+
         data_col    --> If you want to subset data by variables that are in df, but not model features, 
                         you can pass a list of columns which represent the data that the model expects 
                         to see
 
-        combs       --> If you want to generate combinations of columns to test additional subsets
+        combs       --> If you want to generate combinations of columns to test additional subsets. 
+                        If set to False, will simply iterate through possible values of each column in
+                        columns and return those results in isolation. 
+
         comb_size   --> If you have many columns you want to test subests of, you can specify a maximum
                         combination size 
+                        
         categorical --> plan for the future, this is always true 
 
     USAGE:
