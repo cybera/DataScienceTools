@@ -54,8 +54,7 @@ class ModelCard:
         '''
         assumes the model has a predict method
         '''
-        
-        #print(len(list(subset)), len(list(self.df)))
+
         if self.data_col:
             preds = self.model.predict(subset[self.data_col])
         else:
@@ -111,7 +110,6 @@ class ModelCard:
         
         '''
         test_dfs = {}
-        print(print(subsets))
         for key in subsets.keys():
             if type(key) == tuple:
                 combinations = list(itertools.product(*subsets[key]))
@@ -119,7 +117,6 @@ class ModelCard:
                 for i, comb in enumerate(combinations):
                     bkey = ''
                     for j, c in enumerate(comb):
-                        #print(j, c, comb)
                         bkey = bkey + str(key[j]) + ' = ' + str(c) + ' & '
                     bkey = bkey.rstrip(' & ')
 
