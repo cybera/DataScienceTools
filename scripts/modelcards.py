@@ -41,7 +41,7 @@ class ModelCard:
 
         comb_size   --> If you have many columns you want to test subests of, you can specify a maximum
                         combination size 
-                        
+
         categorical --> plan for the future, this is always true 
 
     USAGE:
@@ -172,7 +172,7 @@ class ModelCard:
         return test_dfs
 
     
-    def runTests(self, as_data_frame=False):
+    def runTests(self, as_data_frame=False, counts = False):
         '''
         Currently just runs accuracy tests over the specific subsets that we are 
         interested in
@@ -180,13 +180,13 @@ class ModelCard:
         scores = {}
         if self.combs:
             if self.comb_size:
-                assert self.comb_size < 4, "Too many combinations to search"
+                assert self.comb_size <= 4, "Too many combinations to search"
                 combinations = []
 
-                for i in range(2, comb_size + 1):
+                for i in range(1, self.comb_size + 1):
                     combinations.extend(list(itertools.combinations(self.columns, i)))
             else:
-                assert len(self.columns) < 4, "Too many combinations to search, must specify comb_size"
+                assert len(self.columns) <= 4, "Too many combinations to search, must specify comb_size"
                 combinations = []
                 for i in range(1, len(self.columns) + 1):
                     combinations.extend(list(itertools.combinations(self.columns, i)))
@@ -201,12 +201,22 @@ class ModelCard:
         for key in subset_datum:
             # TN FN FP TP
             # TODO: Will need to update this to handle data which is categorical, not binary
-            performance = self.__performanceCount(subset_datum[key])
-            tests[key] = [self.__accuracyScore(subset_datum[key])] + performance + [len(subset_datum[key])]
+            p = self.__performanceCount(subset_datum[key])
+            precision = p[3] / (p[3] + p[2])
+            recall = p[3] / (p[3] + p[1])
+            F1 = 2 * (precision * recall) / (precision + recall)
+            tests[key] = [self.__accuracyScore(subset_datum[key])] 
+            tests[key] += [precision, recall, F1]
+            if counts:
+                tests[key] += p
         
+            tests[key] += [len(subset_datum[key])]
         if as_data_frame:
+            cols  = ['Subset', 'Accuracy', 'Precision', 'Recall', 'F1']
+            if counts:
+                cols += ['True Negatives', 'False Negatives', 'False Positives', 'True Positives']
+            cols += ['Subset Size']
             tests = pd.DataFrame(tests).T.reset_index()
-            cols = ['Subset', 'Accuracy', 'True Negatives', 'False Negatives', 'False Positives', 'True Positives', 'Subset Size']
             tests.columns = cols
                 
         return tests
