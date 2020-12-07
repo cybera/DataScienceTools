@@ -1,6 +1,7 @@
 import itertools
 import pandas as pd
 import numpy as np
+from sklearn.metrics import confusion_matrix
 
 class ModelCard:
     '''
@@ -32,17 +33,29 @@ class ModelCard:
         preds = self.__subsetScore(subset.astype(float))
         if self.categorical:
             test_truth = self.truth[self.truth.index.isin(subset.index)]
-            print(len(test_truth), len(subset))
+            # (len(test_truth), len(subset))
             test = np.equal(test_truth.to_numpy().flatten(), preds)
             return len(test[test==True])/len(test)
-        
+
+    def __performanceCount(self, subset):
+        '''
+        Binary Statistics only for true/false positive 
+        '''
+        preds = self.__subsetScore(subset.astype(float))
+
+        if self.categorical:
+            test_truth = self.truth[self.truth.index.isin(subset.index)]
+            CM = confusion_matrix(test_truth, preds).ravel()
+            # TN FN FP TP
+            return CM.tolist()
+   
         
     def __subsetScore(self,subset):
         '''
         assumes the model has a predict method
         '''
         
-        print(len(list(subset)), len(list(self.df)))
+        #print(len(list(subset)), len(list(self.df)))
         if self.data_col:
             preds = self.model.predict(subset[self.data_col])
         else:
@@ -59,17 +72,23 @@ class ModelCard:
         and includes the unique values available for those column names
         '''
         values = {}
-        for comb in combs:
-            # if something is alone
-            if type(comb) == str:
-                values[comb] = self.df[comb].unique().tolist()
-            else:
-                
-                for column in comb:
-                    if comb not in values.keys():
-                        values[comb] = [self.df[column].unique().tolist()]
-                    else:
-                        values[comb].append(self.df[column].unique().tolist())
+        if self.combs:
+            for comb in combs:
+                # if something is alone
+                if type(comb) == str:
+                    values[comb] = self.df[comb].unique().tolist()
+                else:
+                    
+                    for column in comb:
+                        if comb not in values.keys():
+                            values[comb] = [self.df[column].unique().tolist()]
+                        else:
+                            values[comb].append(self.df[column].unique().tolist())
+
+        else: 
+            for solo in combs:
+                if type(solo) == str:
+                    values[solo] = self.df[solo].unique().tolist()
         return values
     
     def dfFilter(self, conds):
@@ -111,7 +130,7 @@ class ModelCard:
         return test_dfs
 
     
-    def runTests(self):
+    def runTests(self, as_data_frame=False):
         '''
         Currently just runs accuracy tests over the specific subsets that we are 
         interested in
@@ -124,15 +143,25 @@ class ModelCard:
             else:
                 assert len(self.columns) < 4, "Too many combinations to search, must specify comb_size"
                 combinations = list(itertools.combinations(self.columns, len(self.columns)))
+
+            combinations =  self.columns + combinations
+        else: 
+            combinations = self.columns
             
             #print(combinations, 'howdy')
-            subset_options = self.__equalitySubsets(combinations)
-            
-            subset_datum = self.makeTestDataSubset(subset_options)
-            tests = {}
-            for key in subset_datum:
-
-                tests[key] = self.__accuracyScore(subset_datum[key])
+        subset_options = self.__equalitySubsets(combinations)
+        
+        subset_datum = self.makeTestDataSubset(subset_options)
+        tests = {}
+        for key in subset_datum:
+            # TN FN FP TP
+            performance = self.__performanceCount(subset_datum[key])
+            tests[key] = [self.__accuracyScore(subset_datum[key])] + performance + [len(subset_datum[key])]
+        
+        if as_data_frame:
+            tests = pd.DataFrame(tests).T.reset_index()
+            cols = ['Subset', 'Accuracy', 'True Negatives', 'False Negatives', 'False Positives', 'True Positives', 'Subset Size']
+            tests.columns = cols
                 
         return tests
                 
