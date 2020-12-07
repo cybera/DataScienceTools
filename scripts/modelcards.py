@@ -76,6 +76,7 @@ class ModelCard:
         '''
         Binary Statistics only for true/false positive 
         '''
+        # TODO: Will need to update this to handle data which is categorical, not binary
         preds = self.__subsetScore(subset.astype(float))
 
         if self.categorical:
@@ -191,6 +192,7 @@ class ModelCard:
         tests = {}
         for key in subset_datum:
             # TN FN FP TP
+            # TODO: Will need to update this to handle data which is categorical, not binary
             performance = self.__performanceCount(subset_datum[key])
             tests[key] = [self.__accuracyScore(subset_datum[key])] + performance + [len(subset_datum[key])]
         
