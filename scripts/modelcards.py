@@ -15,6 +15,41 @@ class ModelCard:
     
     known issues as of Nov 20 2020, dfFilter does not work with "weird" column names such as those which contain
     a period (".") or other special characters (/, &, %, etc.) 
+
+
+    NOTE: At current, this only supports CATEGORICAL models, and true negative/false negative etc. tests
+          assume BINARY variables. 
+    Variable Documentation:
+
+        model       --> This is any model that has a .predict() method attached to it
+        df          --> A data frame of data which will be used for the model and subsetting
+        columns     --> The columns at which you want to subset your data to run tests. 
+                           NOTE: These columns to not necessarily need to be model features, provided
+                           data_col is specified.
+        truth       --> a pandas series/numpy vector of the test set truth
+        data_col    --> If you want to subset data by variables that are in df, but not model features, 
+                        you can pass a list of columns which represent the data that the model expects 
+                        to see
+
+        combs       --> If you want to generate combinations of columns to test additional subsets
+        comb_size   --> If you have many columns you want to test subests of, you can specify a maximum
+                        combination size 
+        categorical --> plan for the future, this is always true 
+
+    USAGE:
+      To use this we specify our model card:
+
+      card = ModelCard(model = model, 
+                       df=df, 
+                       columns =[subset_col1, ..., subset_colN],
+                       truth = y_test,
+                       data_col = list(model_variables),
+                       combs = True
+                       )
+
+      results = card(as_data_frame = True)
+
+
     '''
     def __init__(self, model, df, columns, truth, data_col = None, combs = False, comb_size= None, categorical=True):
         self.model = model
