@@ -103,8 +103,7 @@ class ModelCard:
         q = ' and '.join(['{0}=={1}'.format(x[0], x[1]) for x in cons])
         
         return self.df.query(q).copy()
-
-
+    
     def makeTestDataSubset(self, subsets):
         '''
         This function returns a dictionary of filtered data frames representing our filtered
@@ -112,9 +111,11 @@ class ModelCard:
         
         '''
         test_dfs = {}
+        print(print(subsets))
         for key in subsets.keys():
             if type(key) == tuple:
                 combinations = list(itertools.product(*subsets[key]))
+
                 for i, comb in enumerate(combinations):
                     bkey = ''
                     for j, c in enumerate(comb):
@@ -139,18 +140,21 @@ class ModelCard:
         if self.combs:
             if self.comb_size:
                 assert self.comb_size < 4, "Too many combinations to search"
-                combinations = list(itertools.combinations(self.columns, self.comb_size))
+                combinations = []
+
+                for i in range(2, comb_size + 1):
+                    combinations.extend(list(itertools.combinations(self.columns, i)))
             else:
                 assert len(self.columns) < 4, "Too many combinations to search, must specify comb_size"
-                combinations = list(itertools.combinations(self.columns, len(self.columns)))
+                combinations = []
+                for i in range(1, len(self.columns) + 1):
+                    combinations.extend(list(itertools.combinations(self.columns, i)))
 
-            combinations =  self.columns + combinations
+            combinations =  combinations
         else: 
             combinations = self.columns
-            
-            #print(combinations, 'howdy')
+
         subset_options = self.__equalitySubsets(combinations)
-        
         subset_datum = self.makeTestDataSubset(subset_options)
         tests = {}
         for key in subset_datum:
