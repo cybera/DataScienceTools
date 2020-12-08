@@ -18,7 +18,7 @@ class DataSubsetter:
         and includes the unique values available for those column names
         '''
         values = {}
-        if self.combs:
+        if combs:
             for comb in combs:
                 # if something is alone
                 if type(comb) == str:
