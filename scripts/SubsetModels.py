@@ -10,7 +10,7 @@ class SubsetModelTrainer(DataSubsetter):
     def __init__(self, df, y, columns, model, comb_size = None, 
                  data_col = None, combs=True, library='statsmodels', 
                  kwargs={}, train_test_split = False, ttprop = 0.2, fit_type = 'fit',
-                 stats_to_df=True):
+                 stats_to_df = True):
         DataSubsetter.__init__(self, df, columns, comb_size)
         self.model = model
         self.data_col = data_col
@@ -84,7 +84,7 @@ class SubsetModelTrainer(DataSubsetter):
 
         # convert to easy to read DF
         if self.stats_to_df:
-            staticstics = pd.concat({k: pd.DataFrame(v) for k, v in statistics.items()})
+            statistics = pd.concat({k: pd.DataFrame(v) for k, v in statistics.items()})
         return models, statistics
 
 
