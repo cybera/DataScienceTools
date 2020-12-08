@@ -51,17 +51,22 @@ class SubsetModelTrainer(DataSubsetter):
         else: 
             X_train = X_test = x
             y_train = y_test = y
+        
         if self.library == 'statsmodels':
             model = self.fitStatsModel(X_train, y_train)
-            pred = model.predict(X_test.astype(float))
-            pred = round(pred)
-            stats = pd.DataFrame(classification_report(y_test, pred, output_dict=True))
-
-            return model, stats
-
+       
+        elif self.library == 'scikit':
+            model = self.fitSciKit(X_train, y_train)
+        
         else:
             print("not implemented")
-        
+            return
+
+        pred = pd.Series(model.predict(X_test.astype(float)))
+        pred = round(pred)
+        stats = pd.DataFrame(classification_report(y_test, pred, output_dict=True))
+        return model, stats
+    
     def train(self): 
 
         # Make data subsets 
@@ -74,13 +79,10 @@ class SubsetModelTrainer(DataSubsetter):
             subset_x = subset_datum[key][self.data_col]
             subset_y = self.y[self.y.index.isin(subset_x.index)]
             
-            if self.library == 'statsmodels':
-                temp_model, stats = self.modTest(subset_x, subset_y)
-                models[key] = temp_model
-                statistics[key] = stats
+            temp_model, stats = self.modTest(subset_x, subset_y)
+            models[key] = temp_model
+            statistics[key] = stats
 
-            if self.library == 'scikit':
-                pass
 
         # convert to easy to read DF
         if self.stats_to_df:
