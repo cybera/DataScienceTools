@@ -3,6 +3,8 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import confusion_matrix
 
+# For continuous tests, does it make sense to do some binning? 
+
 class ModelCard:
     '''
     class which will create model score cards to understand how it performs with different subsets of data
@@ -68,6 +70,7 @@ class ModelCard:
         self.comb_size = comb_size
         self.categorical = categorical
         self.truth = truth
+        self.test_cols = None
         
     def __accuracyScore(self, subset):
         '''
@@ -171,8 +174,31 @@ class ModelCard:
                     test_dfs[bkey] = self.dfFilter(bkey)
         return test_dfs
 
-    
-    def runTests(self, as_data_frame=False, counts = False):
+    def comboFlag(self, quantile = 0.75, metric = 'Accuracy', direction = 'positive'):
+        '''
+        Funciton to automatically filter results to things we might be worried about. 
+
+        quantile is the data quantile of the metric that data should be greater or less than,
+        metric is a column of the output of runTests, and the direciton positive is for 
+        things that perform better than quantile, negative isf or things that perform worse
+        '''
+
+        try:
+            self.tests.head()
+        except AttributeError:
+            print("Need to run tests before flagging combinations")
+            return
+        if isinstance(self.tests, dict):
+            self.tests = pd.DataFrame(self.tests, columns = self.test_cols)
+
+        if direction == 'positive':
+             warning_df = self.tests[self.tests[metric] >=  self.tests[metric].quantile(quantile)]
+        elif direction == 'negative':
+             warning_df = self.tests[self.tests[metric] <=  self.tests[metric].quantile(quantile)]
+        return warning_df
+        
+
+    def runTests(self, as_data_frame=True, counts = False):
         '''
         Currently just runs accuracy tests over the specific subsets that we are 
         interested in
@@ -218,6 +244,7 @@ class ModelCard:
             cols += ['Subset Size']
             tests = pd.DataFrame(tests).T.reset_index()
             tests.columns = cols
-                
+        self.test_cols = cols
+        self.tests = tests           
         return tests
                 
