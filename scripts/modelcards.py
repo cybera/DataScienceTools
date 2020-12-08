@@ -5,7 +5,95 @@ from sklearn.metrics import confusion_matrix
 
 # For continuous tests, does it make sense to do some binning? 
 
-class ModelCard:
+class DataSubsetter:
+    '''
+    Class to create data subsets based on combinations of data
+    '''
+    def __init__(self, df, columns, comb_size = None):
+        self.df = df 
+        self.columns = columns
+        self.comb_size = comb_size
+    
+    def equalitySubsets(self, combs):
+        '''
+        This function creates a dictionary of each subset combination we're interested in
+        and includes the unique values available for those column names
+        '''
+        values = {}
+        if self.combs:
+            for comb in combs:
+                # if something is alone
+                if type(comb) == str:
+                    values[comb] = self.df[comb].unique().tolist()
+                else:
+                    
+                    for column in comb:
+                        if comb not in values.keys():
+                            values[comb] = [self.df[column].unique().tolist()]
+                        else:
+                            values[comb].append(self.df[column].unique().tolist())
+
+        else: 
+            for solo in combs:
+                if type(solo) == str:
+                    values[solo] = self.df[solo].unique().tolist()
+        return values
+
+    def makeCombinations(self):
+
+        if self.comb_size:
+            assert self.comb_size <= 4, "Too many combinations to search"
+            combinations = []
+
+            for i in range(1, self.comb_size + 1):
+                combinations.extend(list(itertools.combinations(self.columns, i)))
+        else:
+            assert len(self.columns) <= 4, "Too many combinations to search, must specify comb_size"
+            combinations = []
+            for i in range(1, len(self.columns) + 1):
+                combinations.extend(list(itertools.combinations(self.columns, i)))
+
+        return combinations
+    
+    def dfFilter(self, conds):
+        '''
+        Function to use a query command in pandas to filter data frames based on 
+        strings we buld in makeTestDataSubset
+        '''
+        cons = [] 
+        for cond in conds.split(' & '):
+            cons.append(cond.split(' = ' ))
+        
+        q = ' and '.join(['{0}=={1}'.format(x[0], x[1]) for x in cons])
+        
+        return self.df.query(q).copy()
+    
+    def makeTestDataSubset(self, subsets):
+        '''
+        This function returns a dictionary of filtered data frames representing our filtered
+        data for subsets of data we're interested in testing idependently 
+        
+        '''
+        test_dfs = {}
+        for key in subsets.keys():
+            if type(key) == tuple:
+                combinations = list(itertools.product(*subsets[key]))
+
+                for i, comb in enumerate(combinations):
+                    bkey = ''
+                    for j, c in enumerate(comb):
+                        bkey = bkey + str(key[j]) + ' = ' + str(c) + ' & '
+                    bkey = bkey.rstrip(' & ')
+
+                    test_dfs[bkey] = self.dfFilter(bkey)
+            if type(key) == str:
+                for comb in subsets[key]:
+                    bkey = str(key) + ' = ' + str(comb) 
+                    test_dfs[bkey] = self.dfFilter(bkey)
+        return test_dfs
+
+
+class ModelCard(DataSubsetter):
     '''
     class which will create model score cards to understand how it performs with different subsets of data
     
@@ -61,13 +149,11 @@ class ModelCard:
 
 
     '''
-    def __init__(self, model, df, columns, truth, data_col = None, combs = False, comb_size= None, categorical=True):
+    def __init__(self, df, columns, model, truth,comb_size = None, data_col = None, combs = False, categorical=True):
+        DataSubsetter.__init__(self, df, columns, comb_size)
         self.model = model
-        self.df = df
-        self.columns = columns
         self.data_col = data_col
         self.combs = combs
-        self.comb_size = comb_size
         self.categorical = categorical
         self.truth = truth
         self.test_cols = None
@@ -112,43 +198,6 @@ class ModelCard:
             
         return preds
     
-    def __equalitySubsets(self, combs):
-        '''
-        This function creates a dictionary of each subset combination we're interested in
-        and includes the unique values available for those column names
-        '''
-        values = {}
-        if self.combs:
-            for comb in combs:
-                # if something is alone
-                if type(comb) == str:
-                    values[comb] = self.df[comb].unique().tolist()
-                else:
-                    
-                    for column in comb:
-                        if comb not in values.keys():
-                            values[comb] = [self.df[column].unique().tolist()]
-                        else:
-                            values[comb].append(self.df[column].unique().tolist())
-
-        else: 
-            for solo in combs:
-                if type(solo) == str:
-                    values[solo] = self.df[solo].unique().tolist()
-        return values
-    
-    def dfFilter(self, conds):
-        '''
-        Function to use a query command in pandas to filter data frames based on 
-        strings we buld in makeTestDataSubset
-        '''
-        cons = [] 
-        for cond in conds.split(' & '):
-            cons.append(cond.split(' = ' ))
-        
-        q = ' and '.join(['{0}=={1}'.format(x[0], x[1]) for x in cons])
-        
-        return self.df.query(q).copy()
     
     def makeTestDataSubset(self, subsets):
         '''
@@ -186,8 +235,7 @@ class ModelCard:
         try:
             self.tests.head()
         except AttributeError:
-            print("Need to run tests before flagging combinations")
-            return
+            self.runTests()
         if isinstance(self.tests, dict):
             self.tests = pd.DataFrame(self.tests, columns = self.test_cols)
 
@@ -195,6 +243,9 @@ class ModelCard:
              warning_df = self.tests[self.tests[metric] >=  self.tests[metric].quantile(quantile)]
         elif direction == 'negative':
              warning_df = self.tests[self.tests[metric] <=  self.tests[metric].quantile(quantile)]
+        else:
+            print('{direction} is not a valid choice for direction, only accepts "positive" or "negative".')
+            return 
         return warning_df
         
 
@@ -205,23 +256,12 @@ class ModelCard:
         '''
         scores = {}
         if self.combs:
-            if self.comb_size:
-                assert self.comb_size <= 4, "Too many combinations to search"
-                combinations = []
-
-                for i in range(1, self.comb_size + 1):
-                    combinations.extend(list(itertools.combinations(self.columns, i)))
-            else:
-                assert len(self.columns) <= 4, "Too many combinations to search, must specify comb_size"
-                combinations = []
-                for i in range(1, len(self.columns) + 1):
-                    combinations.extend(list(itertools.combinations(self.columns, i)))
-
-            combinations =  combinations
+            combinations = self.makeCombinations()
+            
         else: 
             combinations = self.columns
-
-        subset_options = self.__equalitySubsets(combinations)
+        print(combinations)
+        subset_options = self.equalitySubsets(combinations)
         subset_datum = self.makeTestDataSubset(subset_options)
         tests = {}
         for key in subset_datum:
