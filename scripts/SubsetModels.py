@@ -9,7 +9,8 @@ class SubsetModelTrainer(DataSubsetter):
     
     def __init__(self, df, y, columns, model, comb_size = None, 
                  data_col = None, combs=True, library='statsmodels', 
-                 kwargs={}, train_test_split = False, ttprop = 0.2, fit_type = 'fit'):
+                 kwargs={}, train_test_split = False, ttprop = 0.2, fit_type = 'fit',
+                 stats_to_df=True):
         DataSubsetter.__init__(self, df, columns, comb_size)
         self.model = model
         self.data_col = data_col
@@ -20,6 +21,7 @@ class SubsetModelTrainer(DataSubsetter):
         self.ttprop = ttprop
         self.library = library
         self.fit_type = fit_type
+        self.stats_to_df = stats_to_df
         if data_col:
             self.data_col = self.data_col
         else:
@@ -80,7 +82,9 @@ class SubsetModelTrainer(DataSubsetter):
             if self.library == 'scikit':
                 pass
 
-
+        # convert to easy to read DF
+        if self.stats_to_df:
+            staticstics = pd.concat({k: pd.DataFrame(v) for k, v in statistics.items()})
         return models, statistics
 
 
