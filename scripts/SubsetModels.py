@@ -5,12 +5,14 @@ from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 
 
+# delete things yoo filter on
 class SubsetModelTrainer(DataSubsetter):
     
     def __init__(self, df, y, columns, model, comb_size = None, 
                  data_col = None, combs=True, library='statsmodels', 
                  kwargs={}, train_test_split = False, ttprop = 0.2, fit_type = 'fit',
-                 stats_to_df = True):
+                 stats_to_df = True, drop_subset_column = True):
+        
         DataSubsetter.__init__(self, df, columns, comb_size)
         self.model = model
         self.data_col = data_col
@@ -22,6 +24,7 @@ class SubsetModelTrainer(DataSubsetter):
         self.library = library
         self.fit_type = fit_type
         self.stats_to_df = stats_to_df
+        self.drop_subset_column = drop_subset_column
         if data_col:
             self.data_col = self.data_col
         else:
@@ -76,9 +79,15 @@ class SubsetModelTrainer(DataSubsetter):
         models = {}
         statistics = {}
         for key in subset_datum:
+            print("Training subset: ", key)
             subset_x = subset_datum[key][self.data_col]
             subset_y = self.y[self.y.index.isin(subset_x.index)]
             
+            if self.drop_subset_column:
+                # As everything is now a single value, we need
+                # to drop these columns to avoid singular matricies
+                subset_x = subset_x.drop(self.columns, axis = 1)
+                
             temp_model, stats = self.modTest(subset_x, subset_y)
             models[key] = temp_model
             statistics[key] = stats
