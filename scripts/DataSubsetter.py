@@ -2,7 +2,10 @@
 import itertools
 import pandas as pd
 import numpy as np
-
+'''
+known issues as of Nov 20 2020, dfFilter does not work with "weird" column names such as those which contain
+    a period (".") or other special characters (/, &, %, etc.) 
+    '''
 class DataSubsetter:
     '''
     Class to create data subsets based on combinations of data
@@ -11,7 +14,7 @@ class DataSubsetter:
         self.df = df 
         self.columns = columns
         self.comb_size = comb_size
-        print('nards')
+      
     
     def equalitySubsets(self, combs):
         '''
@@ -25,14 +28,12 @@ class DataSubsetter:
             if type(comb) == str:
                 values[comb] = self.df[comb].unique().tolist()
             else:
-                
                 for column in comb:
                     if comb not in values.keys():
                         values[comb] = [self.df[column].unique().tolist()]
                     else:
                         values[comb].append(self.df[column].unique().tolist())
 
- 
         return values
 
     def makeCombinations(self):
