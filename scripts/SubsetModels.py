@@ -41,7 +41,6 @@ class SubsetModelTrainer(DataSubsetter):
     def fitSciKit(self, x, y):
         # This might not work
         model = self.model(**self.kwargs)
-
         model.fit(x, y)
         return model 
 
@@ -59,8 +58,9 @@ class SubsetModelTrainer(DataSubsetter):
             model = self.fitSciKit(X_train, y_train)
         
         else:
-            print("not implemented")
-            return
+            print(self.library, " is not not implemented")
+            raise NotImplementedError
+            
 
         pred = pd.Series(model.predict(X_test.astype(float)))
         pred = round(pred)
@@ -82,7 +82,6 @@ class SubsetModelTrainer(DataSubsetter):
             temp_model, stats = self.modTest(subset_x, subset_y)
             models[key] = temp_model
             statistics[key] = stats
-
 
         # convert to easy to read DF
         if self.stats_to_df:
