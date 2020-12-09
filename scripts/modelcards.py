@@ -6,8 +6,6 @@ from DataSubsetter import DataSubsetter
 
 # For continuous tests, does it make sense to do some binning? 
 
-
-
 class ModelCard(DataSubsetter):
     '''
     class which will create model score cards to understand how it performs with different subsets of data
@@ -175,7 +173,7 @@ class ModelCard(DataSubsetter):
             
         else: 
             combinations = self.columns
-        print(combinations)
+ 
         subset_options = self.equalitySubsets(combinations)
         subset_datum = self.makeTestDataSubset(subset_options)
         tests = {}
