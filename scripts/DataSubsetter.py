@@ -11,30 +11,28 @@ class DataSubsetter:
         self.df = df 
         self.columns = columns
         self.comb_size = comb_size
+        print('nards')
     
     def equalitySubsets(self, combs):
         '''
         This function creates a dictionary of each subset combination we're interested in
         and includes the unique values available for those column names
         '''
-        values = {}
-        if combs:
-            for comb in combs:
-                # if something is alone
-                if type(comb) == str:
-                    values[comb] = self.df[comb].unique().tolist()
-                else:
-                    
-                    for column in comb:
-                        if comb not in values.keys():
-                            values[comb] = [self.df[column].unique().tolist()]
-                        else:
-                            values[comb].append(self.df[column].unique().tolist())
 
-        else: 
-            for solo in combs:
-                if type(solo) == str:
-                    values[solo] = self.df[solo].unique().tolist()
+        values = {}
+        for comb in combs:
+            # if something is alone
+            if type(comb) == str:
+                values[comb] = self.df[comb].unique().tolist()
+            else:
+                
+                for column in comb:
+                    if comb not in values.keys():
+                        values[comb] = [self.df[column].unique().tolist()]
+                    else:
+                        values[comb].append(self.df[column].unique().tolist())
+
+ 
         return values
 
     def makeCombinations(self):
