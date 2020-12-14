@@ -3,6 +3,7 @@ import pandas as pd
 import numpy as np
 from sklearn.metrics import confusion_matrix
 from DataSubsetter import DataSubsetter
+import numpy as np
 
 # For continuous tests, does it make sense to do some binning? 
 
@@ -62,15 +63,15 @@ class ModelCard(DataSubsetter):
 
 
     '''
-    def __init__(self, df, columns, model, truth,comb_size = None, data_col = None, combs = False, categorical=True):
-        DataSubsetter.__init__(self, df, columns, comb_size)
+    def __init__(self, df, columns, model, truth,comb_size = None, data_col = None, combs = False, categorical=True, q=4):
+        DataSubsetter.__init__(self, df, columns, comb_size, q)
         self.model = model
         self.data_col = data_col
         self.combs = combs
         self.categorical = categorical
         self.truth = truth
         self.test_cols = None
-        
+        self.q = q
     def __accuracyScore(self, subset):
         '''
         Simple function which calculates accuracy of a model 
@@ -111,30 +112,6 @@ class ModelCard(DataSubsetter):
             
         return preds
     
-    
-    def makeTestDataSubset(self, subsets):
-        '''
-        This function returns a dictionary of filtered data frames representing our filtered
-        data for subsets of data we're interested in testing idependently 
-        
-        '''
-        test_dfs = {}
-        for key in subsets.keys():
-            if type(key) == tuple:
-                combinations = list(itertools.product(*subsets[key]))
-
-                for i, comb in enumerate(combinations):
-                    bkey = ''
-                    for j, c in enumerate(comb):
-                        bkey = bkey + str(key[j]) + ' = ' + str(c) + ' & '
-                    bkey = bkey.rstrip(' & ')
-
-                    test_dfs[bkey] = self.dfFilter(bkey)
-            if type(key) == str:
-                for comb in subsets[key]:
-                    bkey = str(key) + ' = ' + str(comb) 
-                    test_dfs[bkey] = self.dfFilter(bkey)
-        return test_dfs
 
     def comboFlag(self, quantile = 0.75, metric = 'Accuracy', direction = 'positive'):
         '''
@@ -168,22 +145,20 @@ class ModelCard(DataSubsetter):
         interested in
         '''
         scores = {}
-        if self.combs:
-            combinations = self.makeCombinations()
-            
-        else: 
-            combinations = self.columns
- 
-        subset_options = self.equalitySubsets(combinations)
-        subset_datum = self.makeTestDataSubset(subset_options)
+
+        subset_datum = self.makeTestDataSubset()
         tests = {}
         for key in subset_datum:
             # TN FN FP TP
             # TODO: Will need to update this to handle data which is categorical, not binary
             p = self.__performanceCount(subset_datum[key])
+            
             precision = p[3] / (p[3] + p[2])
             recall = p[3] / (p[3] + p[1])
-            F1 = 2 * (precision * recall) / (precision + recall)
+            try:
+                F1 = 2 * (precision * recall) / (precision + recall)
+            except: 
+                F1 = np.nan
             tests[key] = [self.__accuracyScore(subset_datum[key])] 
             tests[key] += [precision, recall, F1]
             if counts:
