@@ -10,13 +10,39 @@ class DataSubsetter:
     '''
     Class to create data subsets based on combinations of data
     '''
-    def __init__(self, df, columns, comb_size = None):
+    def __init__(self, df, columns, comb_size = None, q = 4):
         self.df = df 
         self.columns = columns
         self.comb_size = comb_size
-      
+        self.q = q
     
-    def equalitySubsets(self, combs):
+    def typeCheck(self, column):
+        # Check for int
+        ints = column.astype(str).str.isdigit().all()
+        if ints:
+            return 'int'
+        # check for floats
+        floats = (True if 'float' in [column.dtypes] else False)
+        if floats:
+            return 'float'
+        # boolean okay too, treated as integer case 
+        if column.dtypes == 'bool':
+            return 'int'
+        else:
+            raise TypeError('Column "{}" has type "{}" which cannot be subsetted'.format(column.name, column.dtype))
+
+
+    def continuousSubset(self, column):
+        intervals = pd.qcut(self.df[column], q = self.q).unique().tolist()
+        query_list = []
+        for inter in intervals:
+            query_list.extend([{'col':column, 
+                                'left':str(inter.left), 
+                                'right':str(inter.right)}])
+            
+        return query_list
+    
+    def makeSubsets(self, combs):
         '''
         This function creates a dictionary of each subset combination we're interested in
         and includes the unique values available for those column names
@@ -26,13 +52,25 @@ class DataSubsetter:
         for comb in combs:
             # if something is alone
             if type(comb) == str:
-                values[comb] = self.df[comb].unique().tolist()
+                type_ = self.typeCheck(self.df[comb])
+                if type_ == 'int':
+                    values[comb] = self.df[comb].unique().tolist()
+                elif type_ == 'float':
+                    values[comb] = self.continuousSubset(comb)
             else:
                 for column in comb:
+                    
+                    type_ = self.typeCheck(self.df[column])
                     if comb not in values.keys():
-                        values[comb] = [self.df[column].unique().tolist()]
+                        if type_ == 'int':
+                            values[comb] = [self.df[column].unique().tolist()]
+                        elif type_ == 'float':
+                            values[comb] = [self.continuousSubset(column)]
                     else:
-                        values[comb].append(self.df[column].unique().tolist())
+                        if type_ == 'int':
+                            values[comb].append(self.df[column].unique().tolist())
+                        elif type_ == 'float':
+                            values[comb].append(self.continuousSubset(column))
 
         return values
 
@@ -57,34 +95,51 @@ class DataSubsetter:
         Function to use a query command in pandas to filter data frames based on 
         strings we buld in makeTestDataSubset
         '''
-        cons = [] 
-        for cond in conds.split(' & '):
-            cons.append(cond.split(' = ' ))
-        
-        q = ' and '.join(['{0}=={1}'.format(x[0], x[1]) for x in cons])
-        
-        return self.df.query(q).copy()
+
+        return self.df.query(conds).copy()
     
-    def makeTestDataSubset(self, subsets):
+    def __queryMake(self, dic):
+        string = dic['left'] + ' < ' + dic['col'] + ' & ' + dic['col'] + " < " + dic['right']
+        return string
+   
+    def __makeQuery(self, comb, key, friends = True):
+        query_key = ''
+        if friends:
+            for j, c in enumerate(comb):
+                
+                if self.typeCheck(self.df[key[j]]) == 'int':
+                    query_key = query_key + str(key[j]) + ' == ' + str(c) + ' & '
+                
+                elif self.typeCheck(self.df[key[j]]) == 'float':
+                    query_key = query_key + self.__queryMake(c) + ' & '
+        else:
+            pass
+
+
+        return query_key.strip(' & ')
+    
+    def makeTestDataSubset(self):
         '''
         This function returns a dictionary of filtered data frames representing our filtered
         data for subsets of data we're interested in testing idependently 
         
         '''
+        combinations = self.makeCombinations()
+        subsets = self.makeSubsets(combinations)
+        
         test_dfs = {}
         for key in subsets.keys():
             if type(key) == tuple:
                 combinations = list(itertools.product(*subsets[key]))
-
+                
                 for i, comb in enumerate(combinations):
-                    bkey = ''
-                    for j, c in enumerate(comb):
-                        bkey = bkey + str(key[j]) + ' = ' + str(c) + ' & '
-                    bkey = bkey.rstrip(' & ')
-
+                   
+                    bkey = self.__makeQuery(comb, key)
                     test_dfs[bkey] = self.dfFilter(bkey)
             if type(key) == str:
                 for comb in subsets[key]:
+                    print('hes hi hello i am stinky')
                     bkey = str(key) + ' = ' + str(comb) 
+                    
                     test_dfs[bkey] = self.dfFilter(bkey)
         return test_dfs
