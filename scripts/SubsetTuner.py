@@ -1,6 +1,6 @@
 import pandas as pd 
 import numpy as np 
-from SubsetModels_nofeat import SubsetModelTrainer
+from SubsetModels import SubsetModelTrainer
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import classification_report
 from sklearn.model_selection import GridSearchCV
@@ -8,21 +8,23 @@ from sklearn.pipeline import Pipeline
 from sklearn.model_selection import StratifiedKFold
 from sklearn.feature_selection import RFECV
 
-
+# So I think I should separate feature and hyperparameter tuning
 class SubsetFeatureTuner(SubsetModelTrainer):
 
     def __init__(self,df, y, columns, search, search_params = {}, 
                  train_test_split = True,ttprop=0.2, kwargs={},
-                 search_type = "hyperparameter"):
-        SubsetModelTrainer.__init__(self,df=df, y=y, 
+                 search_type = "hyperparameter", q=3):
+        
+        SubsetModelTrainer.__init__(self, df=df, y=y, 
                                     columns=columns, model=search_params['estimator'],
-                                    train_test_split = train_test_split, ttprop=ttprop, kwargs = kwargs)
+                                    train_test_split = train_test_split, ttprop=ttprop, kwargs = kwargs, q=q)
         self.search_params = search_params
         self.search = search
         self.features = {}
         self.kwargs = {}
         self.search_type = search_type
-    
+        self.q = q
+     
     def paramSearch(self, X, y):
         int_search_dict = self.search_params.copy()
         int_search_dict['estimator'] = int_search_dict['estimator']()
@@ -38,7 +40,7 @@ class SubsetFeatureTuner(SubsetModelTrainer):
         setup = self.model(**self.kwargs)
         rfecv = RFECV(estimator = setup, 
                       cv = StratifiedKFold(n_splits=3, shuffle=True), 
-                      scoring = 'f1', n_jobs=-1, min_features_to_select = 5)
+                       n_jobs=-1, min_features_to_select = 5, scoring = 'roc_auc_ovo')
         rfecv.fit(X, y)
         self.features[self.key] = rfecv.support_
         return rfecv
@@ -81,7 +83,7 @@ class SubsetFeatureTuner(SubsetModelTrainer):
         else: 
             X_train = X_test = x
             y_train = y_test = y
-        
+        print('     training with train size', len(X_train))
         if self.library == 'scikit':
             if self.search_type == 'hyperparameter':
                 model = self.paramSearch(X_train, y_train)
