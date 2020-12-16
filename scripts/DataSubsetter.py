@@ -33,7 +33,7 @@ class DataSubsetter:
 
 
     def continuousSubset(self, column):
-        intervals = pd.qcut(self.df[column], q = self.q).unique().tolist()
+        intervals = pd.qcut(self.df[column], q = self.q, duplicates='drop').unique().tolist()
         query_list = []
         for inter in intervals:
             query_list.extend([{'col':column, 
@@ -138,7 +138,7 @@ class DataSubsetter:
                     test_dfs[bkey] = self.dfFilter(bkey)
             if type(key) == str:
                 for comb in subsets[key]:
-                    print('hes hi hello i am stinky')
+                  
                     bkey = str(key) + ' = ' + str(comb) 
                     
                     test_dfs[bkey] = self.dfFilter(bkey)
