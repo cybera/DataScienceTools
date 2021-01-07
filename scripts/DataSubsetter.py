@@ -138,7 +138,6 @@ class DataSubsetter:
                 for i, comb in enumerate(combinations):
                    
                     bkey = self.__makeQuery(comb, key)
-                    print(bkey)
                     test_dfs[bkey] = self.dfFilter(bkey)
             if type(key) == str:
                 for comb in subsets[key]:
