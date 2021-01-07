@@ -10,11 +10,12 @@ class DataSubsetter:
     '''
     Class to create data subsets based on combinations of data
     '''
-    def __init__(self, df, columns, comb_size = None, q = 4):
+    def __init__(self, df, columns, comb_size = None, q = 4, static=False):
         self.df = df 
         self.columns = columns
         self.comb_size = comb_size
         self.q = q
+        self.static = static
     
     def typeCheck(self, column):
         # Check for int
@@ -79,9 +80,11 @@ class DataSubsetter:
         if self.comb_size:
             assert self.comb_size <= 4, "Too many combinations to search"
             combinations = []
-
-            for i in range(1, self.comb_size + 1):
-                combinations.extend(list(itertools.combinations(self.columns, i)))
+            if not self.static:
+                for i in range(1, self.comb_size + 1):
+                    combinations.extend(list(itertools.combinations(self.columns, i)))
+            else:
+                combinations.extend(list(itertools.combinations(self.columns, 2)))
         else:
             assert len(self.columns) <= 4, "Too many combinations to search, must specify comb_size"
             combinations = []
@@ -131,10 +134,11 @@ class DataSubsetter:
         for key in subsets.keys():
             if type(key) == tuple:
                 combinations = list(itertools.product(*subsets[key]))
-                
+                  
                 for i, comb in enumerate(combinations):
                    
                     bkey = self.__makeQuery(comb, key)
+                    print(bkey)
                     test_dfs[bkey] = self.dfFilter(bkey)
             if type(key) == str:
                 for comb in subsets[key]:
