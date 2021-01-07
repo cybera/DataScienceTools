@@ -63,8 +63,8 @@ class ModelCard(DataSubsetter):
 
 
     '''
-    def __init__(self, df, columns, model, truth,comb_size = None, data_col = None, combs = False, categorical=True, q=4):
-        DataSubsetter.__init__(self, df, columns, comb_size, q)
+    def __init__(self, df, columns, model, truth,comb_size = None, data_col = None, combs = False, categorical=True, q=4, precomputed = None, static = False):
+        DataSubsetter.__init__(self, df, columns, comb_size, q, static)
         self.model = model
         self.data_col = data_col
         self.combs = combs
@@ -72,15 +72,17 @@ class ModelCard(DataSubsetter):
         self.truth = truth
         self.test_cols = None
         self.q = q
+        self.precomputed = precomputed
+    
     def __accuracyScore(self, subset):
         '''
         Simple function which calculates accuracy of a model 
         '''
+
         preds = self.__subsetScore(subset.astype(float))
         if self.categorical:
             test_truth = self.truth[self.truth.index.isin(subset.index)]
-            # (len(test_truth), len(subset))
-            test = np.equal(test_truth.to_numpy().flatten(), preds)
+            test = np.equal(test_truth.to_numpy().flatten(), preds.flatten())
             return len(test[test==True])/len(test)
 
     def __performanceCount(self, subset):
@@ -88,9 +90,11 @@ class ModelCard(DataSubsetter):
         Binary Statistics only for true/false positive 
         '''
         # TODO: Will need to update this to handle data which is categorical, not binary
+        
         preds = self.__subsetScore(subset.astype(float))
 
         if self.categorical:
+           
             test_truth = self.truth[self.truth.index.isin(subset.index)]
             CM = confusion_matrix(test_truth, preds).ravel()
             # TN FN FP TP
@@ -101,8 +105,11 @@ class ModelCard(DataSubsetter):
         '''
         assumes the model has a predict method
         '''
-
-        if self.data_col:
+        if self.precomputed is not None:
+            preds = self.precomputed
+            preds = preds[preds.index.isin(subset.index)].to_numpy()
+        
+        elif self.data_col:
             preds = self.model.predict(subset[self.data_col])
         else:
             preds = self.model.predict(subset)
