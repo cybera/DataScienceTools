@@ -14,18 +14,23 @@ def comboFinder(sets, appear_once = False):
     S2 ∩ S3
     S1 ∩ S3
     
-    S1 - (the above unions)
-    S2 - (the above unions)
-    S3 - (the above unions)
+    S1 - (the above intersections)
+    S2 - (the above intersections)
+    S3 - (the above intersection)
     
     Useful for understanding how different sets are related. 
     
     INPUT:
     
     sets  -->  Dictionary of sets
-    appear_once --> Flag to filteer additional overlap. If true, eacl element will only appear once
-                    accross all output sets. If False, elements of each list may appear in more than 
+    appear_once --> Flag to filter additional overlap. If true, each element will only appear once
+                    accros all output sets. If False, elements of each list may appear in more than 
                     one place. 
+
+    RETURNS:
+
+        dictionary, keyed by tuples of the keys of sets with the intersection between those sets, filtered
+        if flag is present 
     
     '''
     combo_uniques = {}
